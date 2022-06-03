@@ -15237,6 +15237,8 @@ static void ImGui::DockNodeUpdateTabBar(ImGuiDockNode* node, ImGuiWindow* host_w
             focus_tab_id = tab_bar->SelectedTabId;
     }
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+
     // If multiple tabs are appearing on the same frame, sort them based on their persistent DockOrder value
     int tabs_unsorted_start = tab_bar->Tabs.Size;
     for (int tab_n = tab_bar->Tabs.Size - 1; tab_n >= 0 && (tab_bar->Tabs[tab_n].Flags & ImGuiTabItemFlags_Unsorted); tab_n--)
@@ -15396,6 +15398,7 @@ static void ImGui::DockNodeUpdateTabBar(ImGuiDockNode* node, ImGuiWindow* host_w
 
     EndTabBar();
     PopID();
+    ImGui::PopStyleVar();
 
     // Restore SkipItems flag
     if (!node->IsDockSpace())

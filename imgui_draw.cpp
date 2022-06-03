@@ -3742,6 +3742,9 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, ImVec2 pos, ImU32 col
 //-----------------------------------------------------------------------------
 // Vaguely redesigned to stop accessing ImGui global state:
 // - RenderArrow()
+// - RenderPlus()
+// - RenderCloseButton()
+// - RenderCollapseButton()
 // - RenderBullet()
 // - RenderCheckMark()
 // - RenderMouseCursor()
@@ -3784,6 +3787,110 @@ void ImGui::RenderArrow(ImDrawList* draw_list, ImVec2 pos, ImU32 col, ImGuiDir d
         break;
     }
     draw_list->AddTriangleFilled(center + a, center + b, center + c, col);
+}
+
+void ImGui::RenderPlus(ImDrawList* draw_list, ImVec2 pos, ImGuiDir dir, float scale)
+{
+    ImU32 col= 0xFF000000;
+    const float h = draw_list->_Data->FontSize * 1.00f;
+    const float offset1 = 0.5;
+    const float offset2 = -0.25;
+    const float  w = (h > h*scale ? h*scale : h) * 0.9f;
+    const float p1 = 0.2f*w + offset2;
+    const float p2 = 0.8f*w + offset2;
+    const float p3 = 0.5f*w + offset2;
+    ImDrawListFlags oldFlags = draw_list->Flags;
+    draw_list->Flags &= ~ImDrawListFlags_AntiAliasedLines;
+    col = 0xFF000000;
+    ImVec2 origin = pos + ImVec2((h-w)*0.5f, (h*scale-w)*0.5f);
+
+    draw_list->AddRectFilledMultiColor(origin, origin + ImVec2(w, w),
+                                       0xFFFFFFFF, 0xFFFFFFFF, 0xFFD9D9D9, 0xFFD9D9D9);
+    draw_list->AddRect(origin, origin + ImVec2(w, w), 0xFF888888, 0, ImDrawListFlags_None, 1.0f);
+    draw_list->Flags = oldFlags;
+    draw_list->AddLine(origin + ImVec2(p1, p3), origin + ImVec2(p2, p3), col, 1.5f);
+    if (dir == ImGuiDir_Right || dir == ImGuiDir_Left)
+        draw_list->AddLine(origin + ImVec2(p3, p1), origin + ImVec2(p3, p2), col, 1.5f);
+}
+
+void ImGui::RenderCloseButton(ImDrawList* draw_list, ImRect bb, bool hovered, bool pressed) {
+    const float h = bb.GetHeight() * 0.3f;
+    ImVec2 center = bb.GetCenter();
+    ImVec2 bl = center - ImVec2(h, h);
+    ImVec2 tr = center + ImVec2(h, h);
+
+    ImU32 col = GetColorU32(pressed ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
+    if(pressed) {
+        draw_list->AddRectFilled(bl, tr, 0xFFE0E0E0);
+        draw_list->AddRect(bl, tr, 0xFF777777, 0, ImDrawListFlags_None, 1.0f);
+    } else if (hovered) {
+        draw_list->AddRectFilledMultiColor(bl, tr, 0xFFFFFFFF, 0xFFFFFFFF,
+                                           0xFFE0E0E0, 0xFFE0E0E0);
+        draw_list->AddRect(bl + ImVec2(1.0f, 1.0f), tr + ImVec2(1.0f, 1.0f), 0xFFFFFFFF, 0, ImDrawListFlags_None, 1.0f);
+        draw_list->AddRect(bl, tr, 0xFF777777, 0, ImDrawListFlags_None, 1.0f);
+    }
+
+    float cross_extent = draw_list->_Data->FontSize * 0.3f * 0.7071f - 1.0f;
+    float thickness = 1.0f;
+    ImU32 cross_col = GetColorU32(ImGuiCol_Text);
+    if(pressed) {
+        cross_col = 0xFF001FB8;
+        thickness = 1.5f;
+    } else if(hovered) {
+        cross_col = 0xFF1010E6;
+        thickness = 1.5f;
+    }
+    center -= ImVec2(0.5f, 0.5f);
+    draw_list->AddLine(center + ImVec2(+cross_extent, +cross_extent), center + ImVec2(-cross_extent, -cross_extent), cross_col, thickness);
+    draw_list->AddLine(center + ImVec2(+cross_extent, -cross_extent), center + ImVec2(-cross_extent, +cross_extent), cross_col, thickness);
+}
+
+void ImGui::RenderCollapseButton(ImDrawList* draw_list, ImRect bb, bool hovered, bool pressed, bool docked, bool collapsed) {
+    const float h = bb.GetHeight() * 0.3f;
+    ImVec2 center = bb.GetCenter();
+    ImVec2 bl = center - ImVec2(h, h);
+    ImVec2 tr = center + ImVec2(h, h);
+
+    ImU32 col = GetColorU32(pressed ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
+    if(pressed) {
+        draw_list->AddRectFilled(bl, tr, 0xFFE0E0E0);
+        draw_list->AddRect(bl, tr, 0xFF777777, 0, ImDrawListFlags_None, 1.0f);
+    } else if (hovered) {
+        draw_list->AddRectFilledMultiColor(bl, tr, 0xFFFFFFFF, 0xFFFFFFFF,
+                                           0xFFE0E0E0, 0xFFE0E0E0);
+        draw_list->AddRect(bl + ImVec2(1.0f, 1.0f), tr + ImVec2(1.0f, 1.0f), 0xFFFFFFFF, 0, ImDrawListFlags_None, 1.0f);
+        draw_list->AddRect(bl, tr, 0xFF777777, 0, ImDrawListFlags_None, 1.0f);
+    }
+
+    float arrowLength = 0.5f*h;
+    ImVec2 tip_pos;
+    ImVec2 half_sz;
+    ImU32 arrow_col;
+
+    if(docked) {
+        arrowLength = 0.5f*h;
+        tip_pos = ImVec2(center.x, tr.y-0.45f*h);
+        half_sz = ImVec2(arrowLength, 1.2f*arrowLength);
+    } else if(!collapsed) {
+        tip_pos = ImVec2(center.x, tr.y-(h-arrowLength));
+        half_sz = ImVec2(arrowLength, 1.8f*arrowLength);
+    } else {
+        tip_pos = ImVec2(tr.x-(h-arrowLength), center.y);
+        half_sz = ImVec2(1.8f*arrowLength, arrowLength);
+    }
+    if(pressed) {
+        arrow_col = GetColorU32(ImGuiCol_Text);
+    } else {
+        arrow_col = 0xFF888888;
+    }
+    if (docked) {
+        draw_list->AddRectFilled(
+                ImVec2(center.x - arrowLength - 0.5f, bl.y + 0.45f * h),
+                ImVec2(center.x + arrowLength + 0.5f, bl.y + 0.75f * h),
+                arrow_col);
+    }
+    RenderArrowPointingAt(draw_list, tip_pos, half_sz,
+                          collapsed ? ImGuiDir_Right : ImGuiDir_Down, arrow_col);
 }
 
 void ImGui::RenderBullet(ImDrawList* draw_list, ImVec2 pos, ImU32 col)
@@ -3836,6 +3943,18 @@ void ImGui::RenderArrowPointingAt(ImDrawList* draw_list, ImVec2 pos, ImVec2 half
     case ImGuiDir_Right: draw_list->AddTriangleFilled(ImVec2(pos.x - half_sz.x, pos.y + half_sz.y), ImVec2(pos.x - half_sz.x, pos.y - half_sz.y), pos, col); return;
     case ImGuiDir_Up:    draw_list->AddTriangleFilled(ImVec2(pos.x + half_sz.x, pos.y + half_sz.y), ImVec2(pos.x - half_sz.x, pos.y + half_sz.y), pos, col); return;
     case ImGuiDir_Down:  draw_list->AddTriangleFilled(ImVec2(pos.x - half_sz.x, pos.y - half_sz.y), ImVec2(pos.x + half_sz.x, pos.y - half_sz.y), pos, col); return;
+    case ImGuiDir_None: case ImGuiDir_COUNT: break; // Fix warnings
+    }
+}
+
+void ImGui::RenderArrowPointingAt(ImDrawList* draw_list, ImVec2 pos, ImVec2 half_sz, ImGuiDir direction, ImU32 col, float thickness)
+{
+    switch (direction)
+    {
+    case ImGuiDir_Left:  draw_list->AddTriangle(ImVec2(pos.x + half_sz.x, pos.y - half_sz.y), ImVec2(pos.x + half_sz.x, pos.y + half_sz.y), pos, col, thickness); return;
+    case ImGuiDir_Right: draw_list->AddTriangle(ImVec2(pos.x - half_sz.x, pos.y + half_sz.y), ImVec2(pos.x - half_sz.x, pos.y - half_sz.y), pos, col, thickness); return;
+    case ImGuiDir_Up:    draw_list->AddTriangle(ImVec2(pos.x + half_sz.x, pos.y + half_sz.y), ImVec2(pos.x - half_sz.x, pos.y + half_sz.y), pos, col, thickness); return;
+    case ImGuiDir_Down:  draw_list->AddTriangle(ImVec2(pos.x - half_sz.x, pos.y - half_sz.y), ImVec2(pos.x + half_sz.x, pos.y - half_sz.y), pos, col, thickness); return;
     case ImGuiDir_None: case ImGuiDir_COUNT: break; // Fix warnings
     }
 }
