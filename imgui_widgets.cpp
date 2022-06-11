@@ -6907,13 +6907,19 @@ bool ImGui::BeginMenuEx(const char* label, const char* icon, bool enabled)
         float icon_w = (icon && icon[0]) ? CalcTextSize(icon, NULL).x : 0.0f;
         float checkmark_w = IM_FLOOR(g.FontSize * 1.20f);
         float min_w = window->DC.MenuColumns.DeclColumns(icon_w, label_size.x, 0.0f, checkmark_w); // Feedback to next frame
+        min_w += 1.7f*g.Style.SelectableInnerPadding;
+        pos.x += g.Style.SelectableInnerPadding;
         float extra_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
         ImVec2 text_pos(window->DC.CursorPos.x + offsets->OffsetLabel, window->DC.CursorPos.y + window->DC.CurrLineTextBaseOffset);
+        text_pos.x += g.Style.SelectableInnerPadding;
         pressed = Selectable("", menu_is_open, selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, 0.0f));
         RenderText(text_pos, label);
         if (icon_w > 0.0f)
             RenderText(pos + ImVec2(offsets->OffsetIcon, 0.0f), icon);
-        RenderArrow(window->DrawList, pos + ImVec2(offsets->OffsetMark + extra_w + g.FontSize * 0.30f, 0.0f), GetColorU32(ImGuiCol_Text), ImGuiDir_Right);
+        RenderArrow(window->DrawList,
+                    pos + ImVec2(offsets->OffsetMark + extra_w + g.FontSize * 0.30f,
+                                 GetWindowDrawList()->_Data->FontSize * 0.5f * 0.5f),
+                    GetColorU32(ImGuiCol_Text), ImGuiDir_Right, 0.5f);
     }
     if (!enabled)
         EndDisabled();
@@ -7080,6 +7086,10 @@ bool ImGui::MenuItemEx(const char* label, const char* icon, const char* shortcut
         float shortcut_w = (shortcut && shortcut[0]) ? CalcTextSize(shortcut, NULL).x : 0.0f;
         float checkmark_w = IM_FLOOR(g.FontSize * 1.20f);
         float min_w = window->DC.MenuColumns.DeclColumns(icon_w, label_size.x, shortcut_w, checkmark_w); // Feedback for next frame
+
+        pos.x += g.Style.SelectableInnerPadding;
+        min_w += 1.7f * g.Style.SelectableInnerPadding;
+
         float stretch_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
         pressed = Selectable("", false, selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, 0.0f));
         RenderText(pos + ImVec2(offsets->OffsetLabel, 0.0f), label);
